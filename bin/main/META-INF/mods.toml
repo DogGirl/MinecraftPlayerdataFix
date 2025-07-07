@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[46,)"
+
+license="All Rights Reserved"
+issueTrackerURL="https://github.com/MinecraftForge/MinecraftForge/issues"
+showAsResourcePack=false
+
+[[mods]]
+  modId="playerdatamod"
+  version="1.0.0.0"
+  displayName="Example Mod"
+  updateJSONURL="https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json"
+  displayURL="https://minecraftforge.net"
+  logoFile="logo.png"
+  credits="I'd like to thank my mother and father."
+  authors="Author"
+  description='''
+  Lets you craft dirt into diamonds. This is a traditional mod that has existed for eons. It is ancient. The holy Notch created it. Jeb rainbowfied it. Dinnerbone made it upside down. Etc.
+  '''
+  displayTest="MATCH_VERSION"
+
+[[dependencies.playerdatamod]]
+  modId="minecraft"
+  mandatory=true
+  versionRange="[1.20.1]"
+  ordering="NONE"
+  side="BOTH"
