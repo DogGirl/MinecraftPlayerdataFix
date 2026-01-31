@@ -7,6 +7,7 @@
   },
   "minecraft:adventure/adventuring_time": {
     "criteria": {
+      "minecraft:bamboo_jungle": "2025-03-25 12:40:10 +0200",
       "minecraft:sparse_jungle": "2025-03-17 11:25:48 +0200",
       "minecraft:forest": "2025-03-17 16:04:25 +0200"
     },

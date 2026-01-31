@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="Apache 2.0"
+showAsResourcePack=false
+
+[[mods]]
+  modId="playerdatamod"
+  version="1.0"
+  displayName="Playerdata Fix"
+  authors="MsDogGirl"
+  description='''
+  Allows the game to store data from multiple accounts in singleplayer. Switching accounts in a singleplayer world no 
+  longer copies player data, allowing for switching to alts with their own inventory, health, etc.
+  '''
+

@@ -1,0 +1,3 @@
+#List of protected mobs that players cannot harm
+protectedMobs = ["minecraft:villager"]
+

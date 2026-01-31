@@ -2,8 +2,8 @@ Manifest-Version: 1.0
 Specification-Title: examplemod
 Specification-Vendor: YourNameHere, OtherNameHere
 Specification-Version: 1
-Implementation-Title: Playerdata Fix
+Implementation-Title: PlayerdataFix
 Implementation-Version: 1.0.0
 Implementation-Vendor: YourNameHere, OtherNameHere
-Implementation-Timestamp: 2025-03-17T12:50:47+0200
+Implementation-Timestamp: 2025-07-07T10:01:51+0200
 
