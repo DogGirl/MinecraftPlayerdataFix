@@ -37,6 +37,36 @@ public class PlayerData {
                 player.load(tag);
             }
 
+            String dimStr = tag.contains("Dimension") ? tag.getString("Dimension") : "minecraft:overworld";
+            ResourceLocation dimLoc = ResourceLocation.tryParse(dimStr);
+            ResourceKey<Level> dimKey = ResourceKey.create(Registries.DIMENSION, dimLoc);
+
+            ServerLevel targetLevel = player.server.getLevel(dimKey);
+            if (targetLevel == null) {
+                targetLevel = player.server.overworld();
+            }
+
+            double x = 0.0, y = 64.0, z = 0.0;
+            if (tag.contains("Pos", Tag.TAG_LIST)) {
+                ListTag pos = tag.getList("Pos", Tag.TAG_DOUBLE);
+                if (pos.size() >= 3) {
+                    x = pos.getDouble(0);
+                    y = pos.getDouble(1);
+                    z = pos.getDouble(2);
+                }
+            }
+
+            float yaw = 0.0f, pitch = 0.0f;
+            if (tag.contains("Rotation", Tag.TAG_LIST)) {
+                ListTag rot = tag.getList("Rotation", Tag.TAG_FLOAT);
+                if (rot.size() >= 2) {
+                    yaw = rot.getFloat(0);
+                    pitch = rot.getFloat(1);
+                }
+            }
+
+            player.teleportTo(targetLevel, x, y, z, yaw, pitch);
+
             LOGGER.info("Applied full player data for {}", player.getName().getString());
         }
 
