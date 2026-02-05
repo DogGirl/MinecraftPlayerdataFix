@@ -1,161 +1,119 @@
 package com.msdoggirl.playerdatafix;
 
-import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.PlayerList;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import com.msdoggirl.playerdatafix.PlayerData;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.server.level.ServerLevel;
+
+import org.slf4j.Logger;
+
+import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.logging.LogUtils;
+
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.GameProfileArgument;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
 
 @Mod.EventBusSubscriber
 public class PlayerDataCommand {
-    private static final Map<UUID, PlayerData> playerDataMap = new HashMap<>();
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Map<UUID, CompoundTag> backupDataMap = new HashMap<>();
 
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("playerdata")
-                .then(Commands.argument("player1", net.minecraft.commands.arguments.GameProfileArgument.gameProfile())
-                        .then(Commands.argument("player2", StringArgumentType.string())
-                                .executes(PlayerDataCommand::execute))));
+        event.getDispatcher().register(
+            Commands.literal("playerdata")
+                .then(Commands.argument("player1", GameProfileArgument.gameProfile())
+                    .then(Commands.argument("player2", StringArgumentType.string())
+                        .executes(ctx -> execute(ctx))
+                    )
+                )
+        );
     }
 
-    public static int execute(CommandContext<CommandSourceStack> context) {
+    private static int execute(CommandContext<CommandSourceStack> context) {
         MinecraftServer server = context.getSource().getServer();
 
         try {
-            GameProfile player1Profile = net.minecraft.commands.arguments.GameProfileArgument.getGameProfiles(context, "player1").iterator().next();
-            String player2Argument = StringArgumentType.getString(context, "player2");
-            
-            // Handle player1 (resolve online/offline)
-            ServerPlayer player1 = server.getPlayerList().getPlayer(player1Profile.getId());
-            ServerPlayer resolvedPlayer1 = player1;
-            if (resolvedPlayer1 == null) {
-                resolvedPlayer1 = loadOfflinePlayer(server, player1Profile);
-                if (resolvedPlayer1 == null) {
-                    context.getSource().sendFailure(Component.literal("Failed to load data for player 1 (offline)."));
-                    return 0;
-                }
+            GameProfile p1Profile = GameProfileArgument.getGameProfiles(context, "player1").iterator().next();
+            String p2Name = StringArgumentType.getString(context, "player2");
+
+            ServerPlayer target = server.getPlayerList().getPlayer(p1Profile.getId());
+
+            if (target == null) {
+                context.getSource().sendFailure(Component.literal("Target player must be online."));
+                return 0;
             }
 
-            if (player2Argument.equalsIgnoreCase("new")) {
-                // Reset player1 to a blank state
-                final Path newPlayerData = server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve("00000-0000-0000-0000-000000000000.dat");
-                final ServerPlayer finalPlayer1 = resolvedPlayer1; // Declare final for lambda
-                com.msdoggirl.playerdatafix.PlayerData.loadPlayerData(resolvedPlayer1, newPlayerData);
-                context.getSource().sendSuccess(() -> Component.literal("Player data for " + finalPlayer1.getName().getString() + " has been reset to default state."), true);
+            UUID uuid = target.getUUID();
+    
+            if (p2Name.equalsIgnoreCase("new")) {
+                GameProfile newProfile = PlayerDataMod.loadFakePlayerProfile(server, UUID.fromString("00000000-0000-0000-0000-000000000000"));
+                ServerPlayer newPlayer = PlayerData.loadOfflinePlayer(server, newProfile);
+                CompoundTag sourceData = new CompoundTag();
+                newPlayer.saveWithoutId(sourceData);
+                PlayerData.applyFullPlayerData(target, sourceData);
+                target.connection.disconnect(Component.literal("Player data reset in progress. Please rejoin the server."));
                 return 1;
-            } else {
-                GameProfile player2Profile = server.getProfileCache().get(player2Argument).orElse(null);
-                if (player2Profile == null) {
-                    context.getSource().sendFailure(Component.literal("Player 2 does not exist or is invalid."));
+            }
+
+
+            GameProfile p2Profile = server.getProfileCache().get(p2Name).orElse(null);
+            if (p2Profile == null) {
+                context.getSource().sendFailure(Component.literal("Player " + p2Name + " not found."));
+                return 0;
+            }
+
+            ServerPlayer source = server.getPlayerList().getPlayer(p2Profile.getId());
+            if (source == null) {
+                source = PlayerData.loadOfflinePlayer(server, p2Profile);
+                if (source == null) {
+                    context.getSource().sendFailure(Component.literal("Cannot load source player."));
                     return 0;
                 }
-
-                ServerPlayer player2 = server.getPlayerList().getPlayer(player2Profile.getId());
-                if (player2 == null) {
-                    player2 = loadOfflinePlayer(server, player2Profile);
-                    if (player2 == null) {
-                        context.getSource().sendFailure(Component.literal("Failed to load data for player 2 (offline)."));
-                        return 0;
-                    }
-                }
-
-                final ServerPlayer finalPlayer1 = resolvedPlayer1; // Declare final for lambda
-                final GameProfile finalPlayer2Profile = player2Profile; // Declare final for lambda
-                UUID player1UUID = finalPlayer1.getUUID();
-
-                // Check if player1's data is already stored
-                if (playerDataMap.containsKey(player1UUID)) {
-                    // Restore original data
-                    PlayerData originalData = playerDataMap.remove(player1UUID);
-                    originalData.applyToPlayer(finalPlayer1);
-                    context.getSource().sendSuccess(() -> Component.literal("Player data for " + finalPlayer1.getName().getString() + " has been restored."), true);
-                } else {
-                    // Store player1's current data and copy player2's data to player1
-                    PlayerData player1Data = new PlayerData(finalPlayer1);
-                    playerDataMap.put(player1UUID, player1Data);
-
-                    PlayerData player2Data = new PlayerData(player2);
-                    player2Data.applyToPlayer(finalPlayer1);
-
-                    context.getSource().sendSuccess(() -> Component.literal("Player data for " + finalPlayer1.getName().getString() + " has been copied from " + finalPlayer2Profile.getName() + "."), true);
-                }
-
-                return 1; // Command executed successfully
             }
-        } catch (CommandSyntaxException e) {
-            context.getSource().sendFailure(Component.literal("Failed to parse player arguments: " + e.getMessage()));
-            return 0; // Command failed due to syntax error
+
+            if (backupDataMap.containsKey(uuid)) {
+                CompoundTag orig = backupDataMap.remove(uuid);
+                PlayerData.applyFullPlayerData(target, orig);
+                target.connection.disconnect(Component.literal("Restored original data. Please rejoin."));
+                context.getSource().sendSuccess(
+                    () -> Component.literal("Restored original data for " + target.getName().getString()),
+                    true
+                );
+            } else {
+                CompoundTag backup = new CompoundTag();
+                target.saveWithoutId(backup);
+                backupDataMap.put(uuid, backup);
+
+                CompoundTag sourceData = new CompoundTag();
+                source.saveWithoutId(sourceData);
+                PlayerData.applyFullPlayerData(target, sourceData);
+                target.connection.disconnect(Component.literal("Data copied. Please rejoin."));
+
+                context.getSource().sendSuccess(
+                    () -> Component.literal("Copied data from " + p2Profile.getName() +
+                                            " to " + target.getName().getString()),
+                    true
+                );
+            }
+
+            return 1;
+
         } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("An unexpected error occurred: " + e.getMessage()));
-            return 0; // General error handling
+            context.getSource().sendFailure(Component.literal("Error: " + e.getMessage()));
+            LOGGER.error("playerdata command failed", e);
+            return 0;
         }
     }
-
-    private static void resetPlayerToDefault(ServerPlayer player) {
-
-            Level level = player.level();
-            // Clear inventory
-            player.getInventory().clearContent();
-
-            // Reset experience
-            player.giveExperienceLevels(-player.experienceLevel);
-            player.experienceProgress = 0;
-
-            // Reset health
-            player.setHealth(player.getMaxHealth());
-
-            // Reset hunger
-            player.getFoodData().setFoodLevel(20); // Full hunger
-            player.getFoodData().setSaturation(5.0F); // Full saturation
-
-            // Set to world's default gamemode
-            if (!level.isClientSide) {
-                GameType defaultGameType = level.getServer().getDefaultGameType();
-                player.setGameMode(defaultGameType);
-            }
-            
-        }
-
-
-    private static ServerPlayer loadOfflinePlayer(MinecraftServer server, GameProfile profile) {
-        try {
-            PlayerList playerList = server.getPlayerList();
-            ServerLevel overworld = server.overworld();
-            ServerPlayer offlinePlayer = new ServerPlayer(server, overworld, profile);
-
-            // Load the offline player's data from disk
-            var playerData = playerList.load(offlinePlayer);
-            if (playerData == null) {
-                return null; // Return null if no data was found
-            }
-
-            offlinePlayer.load(playerData); // Apply the loaded data to the player
-            return offlinePlayer;
-        } catch (Exception e) {
-            return null; // Return null if any error occurs
-        }
-    }
-
 }

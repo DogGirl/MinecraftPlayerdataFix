@@ -1,14 +1,16 @@
 modLoader="javafml"
 loaderVersion="[47,)"
-license="MIT"
+license="Apache 2.0"
 showAsResourcePack=false
 
 [[mods]]
-  modId="friendlyfire"
-  version="beta_1.0"
-  displayName="Friendly Fire"
+  modId="playerdatamod"
+  version="1.0"
+  displayName="Playerdata Fix"
   authors="MsDogGirl"
   description='''
-  Friendly fire mod that adds a button to disable the ability to attack configurable mobs.
+  Allows the game to store data from multiple accounts in singleplayer. Switching accounts in a singleplayer world no 
+  longer copies player data, allowing for switching to alts with their own inventory, health, etc.
   '''
-
+[[mixins]]
+config="mixins.playerdatamod.json"

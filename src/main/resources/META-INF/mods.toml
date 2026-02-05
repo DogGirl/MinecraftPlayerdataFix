@@ -12,4 +12,5 @@ showAsResourcePack=false
   Allows the game to store data from multiple accounts in singleplayer. Switching accounts in a singleplayer world no 
   longer copies player data, allowing for switching to alts with their own inventory, health, etc.
   '''
-
+[[mixins]]
+config="mixins.playerdatamod.json"

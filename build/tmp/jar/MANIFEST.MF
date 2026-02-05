@@ -1,9 +1,8 @@
 Manifest-Version: 1.0
 Specification-Title: playerdatamod
 Specification-Vendor: MsDogGirl
-Specification-Version: 1
-Implementation-Title: PlayerdataFix
-Implementation-Version: 1.0
+Implementation-Title: MinecraftPlayerdataFix
+Implementation-Version: 1.0.0
 Implementation-Vendor: MsDogGirl
-Implementation-Timestamp: 2026-01-10T09:23:44+0200
+MixinConfigs: mixins.playerdatamod.json
 

@@ -18,14 +18,6 @@
       }
     },
     {
-      "label": "prepareRunGameTestServerCompile",
-      "type": "shell",
-      "command": "./gradlew prepareRunGameTestServerCompile",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      }
-    },
-    {
       "label": "prepareRunServerCompile",
       "type": "shell",
       "command": "./gradlew prepareRunServerCompile",
